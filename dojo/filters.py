@@ -106,21 +106,6 @@ def custom_filter(queryset, name, value):
     return queryset.filter(Q(**{filter: values}))
 
 
-def custom_vulnerability_id_filter(queryset, name, value):
-    values = value.split(",")
-    ids = Vulnerability_Id.objects \
-        .filter(vulnerability_id__in=values) \
-        .values_list("finding_id", flat=True)
-    return queryset.filter(id__in=ids)
-
-
-def vulnerability_id_filter(queryset, name, value):
-    ids = Vulnerability_Id.objects \
-        .filter(vulnerability_id=value) \
-        .values_list("finding_id", flat=True)
-    return queryset.filter(id__in=ids)
-
-
 def now():
     return local_tz.localize(datetime.today())
 
@@ -1398,7 +1383,6 @@ class ApiFindingFilter(DojoFilter):
     # CharFilter
     component_version = CharFilter(lookup_expr="icontains")
     component_name = CharFilter(lookup_expr="icontains")
-    vulnerability_id = CharFilter(method=custom_vulnerability_id_filter)
     description = CharFilter(lookup_expr="icontains")
     file_path = CharFilter(lookup_expr="icontains")
     hash_code = CharFilter(lookup_expr="icontains")
@@ -1476,6 +1460,16 @@ class ApiFindingFilter(DojoFilter):
         exclude="True")
     has_tags = BooleanFilter(field_name="tags", lookup_expr="isnull", exclude=True, label="Has tags")
     outside_of_sla = extend_schema_field(OpenApiTypes.NUMBER)(FindingSLAFilter())
+    vulnerability_id = CharFilter(
+        field_name="vulnerability_id__vulnerability_id",
+        lookup_expr="iexact",
+        label="Vulnerability ID",
+    )
+    vulnerability_id_contains = CharFilter(
+        field_name="vulnerability_id__vulnerability_id",
+        lookup_expr="icontains",
+        label="Vulnerability ID Contains",
+    )
 
     o = OrderingFilter(
         # tuple-mapping retains order
@@ -1550,7 +1544,6 @@ class FindingFilterHelper(FilterSet):
     last_reviewed = DateRangeFilter()
     last_status_update = DateRangeFilter()
     cwe = MultipleChoiceFilter(choices=[])
-    vulnerability_id = CharFilter(method=vulnerability_id_filter, label="Vulnerability Id")
     severity = MultipleChoiceFilter(choices=SEVERITY_CHOICES)
     duplicate = ReportBooleanFilter()
     is_mitigated = ReportBooleanFilter()
@@ -1626,6 +1619,16 @@ class FindingFilterHelper(FilterSet):
             "is an upper bound. Leaving one empty will skip that bound (e.g., leaving the lower bound "
             'input empty will filter only on the upper bound -- filtering on "less than or equal").'
         ))
+    vulnerability_id = CharFilter(
+        field_name="vulnerability_id__vulnerability_id",
+        lookup_expr="iexact",
+        label="Vulnerability ID",
+    )
+    vulnerability_id_contains = CharFilter(
+        field_name="vulnerability_id__vulnerability_id",
+        lookup_expr="icontains",
+        label="Vulnerability ID Contains",
+    )
 
     o = OrderingFilter(
         # tuple-mapping retains order
@@ -1890,7 +1893,16 @@ class AcceptedFindingFilterWithoutObjectLookups(FindingFilterWithoutObjectLookup
 
 class SimilarFindingHelper(FilterSet):
     hash_code = MultipleChoiceFilter()
-    vulnerability_ids = CharFilter(method=custom_vulnerability_id_filter, label="Vulnerability Ids")
+    vulnerability_id = CharFilter(
+        field_name="vulnerability_id__vulnerability_id",
+        lookup_expr="iexact",
+        label="Vulnerability ID",
+    )
+    vulnerability_id_contains = CharFilter(
+        field_name="vulnerability_id__vulnerability_id",
+        lookup_expr="icontains",
+        label="Vulnerability ID Contains",
+    )
 
     def update_data(self, data: dict, *args: list, **kwargs: dict):
         # if filterset is bound, use initial values as defaults
@@ -2058,7 +2070,16 @@ class MetricsFindingFilter(FindingFilter):
     start_date = DateFilter(field_name="date", label="Start Date", lookup_expr=("gt"))
     end_date = DateFilter(field_name="date", label="End Date", lookup_expr=("lt"))
     date = MetricsDateRangeFilter()
-    vulnerability_id = CharFilter(method=vulnerability_id_filter, label="Vulnerability Id")
+    vulnerability_id = CharFilter(
+        field_name="vulnerability_id__vulnerability_id",
+        lookup_expr="iexact",
+        label="Vulnerability ID",
+    )
+    vulnerability_id_contains = CharFilter(
+        field_name="vulnerability_id__vulnerability_id",
+        lookup_expr="icontains",
+        label="Vulnerability ID Contains",
+    )
 
     not_tags = ModelMultipleChoiceFilter(
         field_name="tags__name",
@@ -2088,7 +2109,16 @@ class MetricsFindingFilterWithoutObjectLookups(FindingFilterWithoutObjectLookups
     start_date = DateFilter(field_name="date", label="Start Date", lookup_expr=("gt"))
     end_date = DateFilter(field_name="date", label="End Date", lookup_expr=("lt"))
     date = MetricsDateRangeFilter()
-    vulnerability_id = CharFilter(method=vulnerability_id_filter, label="Vulnerability Id")
+    vulnerability_id = CharFilter(
+        field_name="vulnerability_id__vulnerability_id",
+        lookup_expr="iexact",
+        label="Vulnerability ID",
+    )
+    vulnerability_id_contains = CharFilter(
+        field_name="vulnerability_id__vulnerability_id",
+        lookup_expr="icontains",
+        label="Vulnerability ID Contains",
+    )
 
     not_tags = ModelMultipleChoiceFilter(
         field_name="tags__name",
